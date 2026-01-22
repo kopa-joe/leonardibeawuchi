@@ -1,0 +1,29 @@
+{
+  "name": "kopa-joseph-foundation-portal",
+  "version": "1.0.0",
+  "description": "Foundation website with philanthropy, scholarship management, and empowerment programs.",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "foundation",
+    "scholarship",
+    "portal",
+    "express"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs": "^0.0.1-security",
+    "multer": "^1.4.5-lts.1",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
