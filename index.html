@@ -8,17 +8,8 @@
     <link rel="apple-touch-icon" href="img/logo.png">
     <link rel="stylesheet" href="css/style.css">
     <style>
-        /* This ensures the logo and text stay side-by-side */
-        header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-        }
-        .header-logo {
-            height: 50px; /* Standard size to match your H1 height */
-            width: auto;
-        }
+        header { display: flex; align-items: center; justify-content: center; gap: 15px; }
+        .header-logo { height: 50px; width: auto; }
     </style>
 </head>
 <body>
@@ -44,9 +35,7 @@
     </main>
 
     <main id="profile-view" style="display:none;">
-        <section class="profile-container">
-            <div id="profile-content"></div>
-        </section>
+        <section class="profile-container" id="profile-content"></section>
     </main>
 
     <footer>
@@ -55,7 +44,7 @@
 
     <div id="imageModal" class="modal-overlay">
         <span class="modal-close">&times;</span>
-        <img id="modalImg" class="modal-image">
+        <img id="modalImg" class="modal-image" alt="Enlarged view">
     </div>
 
     <script src="js/script.js"></script>
