@@ -45,7 +45,7 @@
         /* Loading Spinner Overlay */
         .loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9); display: none;
+            background: rgba(255, 255, 255, 0.8); display: none;
             flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
         }
         .spinner {
@@ -53,15 +53,13 @@
             border-top: 5px solid var(--accent); border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        .status-icon { font-size: 50px; display: none; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="loader" class="loader-overlay">
-        <div id="loaderIcon" class="spinner"></div>
-        <div id="loaderStatus" class="status-icon"></div>
-        <p id="loaderText" style="margin-top: 15px; color: var(--primary); font-weight: bold; text-align: center;">Processing, please wait...</p>
+        <div class="spinner"></div>
+        <p style="margin-top: 15px; color: var(--primary); font-weight: bold;">Processing, please wait...</p>
     </div>
 
     <div id="qr-buffer"></div>
@@ -156,28 +154,6 @@
         $('year').value = Math.max(2025, startY);
 
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
-
-        const showLoader = (show, text = "", type = "spin") => {
-            const loader = $('loader');
-            const icon = $('loaderIcon');
-            const status = $('loaderStatus');
-            const label = $('loaderText');
-            
-            if(!show) { loader.style.display = 'none'; return; }
-            
-            loader.style.display = 'flex';
-            label.innerText = text;
-            
-            if(type === "spin") {
-                icon.style.display = "block";
-                status.style.display = "none";
-            } else {
-                icon.style.display = "none";
-                status.style.display = "block";
-                status.innerHTML = type === "success" ? "✅" : "⚠️";
-                status.style.color = type === "success" ? "var(--success)" : "var(--danger)";
-            }
-        };
 
         async function fetchList() {
             const res = await fetch('/data/data.json');
@@ -315,12 +291,18 @@
 
         $('studentForm').onsubmit = async (e) => {
             e.preventDefault();
-            const eid = $('editId').value;
+            
+            // Show Spinner
+            $('loader').style.display = 'flex';
 
             try {
+                // 1. Handle Single Edit Mode
+                const eid = $('editId').value;
                 if (eid) {
-                    if (!validate()) return;
-                    showLoader(true, `Syncing ${$('fName').value}'s academic records...`);
+                    if (!validate()) {
+                        $('loader').style.display = 'none';
+                        return;
+                    }
                     const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
                     const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
                     
@@ -333,17 +315,23 @@
                         thanks: $('thanks').value.trim()
                     };
                     await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                    showLoader(true, "Profile Updated Successfully!", "success");
-                    setTimeout(() => { showLoader(false); resetForm(); }, 1500);
+                    alert("Profile Updated Successfully!");
+                    resetForm();
                     return;
                 }
 
+                // 2. Handle Batch Creation
                 if ($('fName').value.trim() !== "") {
-                    addToQueue();
+                    const added = addToQueue();
+                    if (!added) {
+                        $('loader').style.display = 'none';
+                        return;
+                    } 
                 }
 
                 if (pendingQueue.length === 0) {
                     alert("The queue is empty. Please add users first.");
+                    $('loader').style.display = 'none';
                     return;
                 }
 
@@ -355,34 +343,41 @@
                     const u = sorted[i];
                     let assignedPos = "";
 
-                    if (i === 0) assignedPos = posNames[0];
-                    else if (i < 3) {
+                    if (i === 0) {
+                        assignedPos = posNames[0];
+                    } else if (i < 3) {
                         const prev = sorted[i - 1];
-                        const isAbsoluteTie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                        assignedPos = isAbsoluteTie ? prev.assignedPos : posNames[i];
+                        const isAbsoluteTie = (
+                            u.score === prev.score && 
+                            u.scores.m === prev.scores.m && 
+                            u.scores.p === prev.scores.p && 
+                            u.scores.c === prev.scores.c && 
+                            u.scores.b === prev.scores.b && 
+                            u.scores.e === prev.scores.e
+                        );
+
+                        if (isAbsoluteTie) {
+                            assignedPos = prev.assignedPos;
+                        } else {
+                            assignedPos = posNames[i];
+                        }
                     }
 
                     if (assignedPos) {
-                        const stepPrefix = `(Step ${i+1} of ${sorted.length})`;
-                        showLoader(true, `${stepPrefix} Uploading Passport Photo for ${u.fName}...`);
-
                         const now = new Date();
                         const pad = (n) => n.toString().padStart(2, '0');
                         const dtStr = now.getFullYear().toString() + pad(now.getMonth()+1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-                        const dtRev = dtStr.split('').reverse().join('').substring(0,8);
-                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}${Math.floor(Math.random()*100)}`;
+                        const dtRev = dtStr.split('').reverse().join('');
+                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}`;
 
-                        const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
-                        const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
-                        
-                        showLoader(true, `${stepPrefix} Syncing ${u.fName}'s academic records...`);
-                        
                         const student = {
                             id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
                             class: $('class').value, year: +$('year').value, position: assignedPos,
                             score: u.score.toFixed(1) + "%", 
                             details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
-                            photo: photoPath, celebration_photo: celebPath, thanks: u.thanks
+                            photo: await uploadRawFile(u.photo) || 'img/default.png',
+                            celebration_photo: await uploadRawFile(u.celeb) || '',
+                            thanks: u.thanks
                         };
 
                         await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
@@ -390,13 +385,14 @@
                     }
                 }
 
-                showLoader(true, `Batch Complete: ${savedCount} users saved.`, "success");
-                setTimeout(() => { showLoader(false); resetForm(); }, 2000);
-
+                alert(`Batch Complete: ${savedCount} users successfully saved based on ranking.`);
+                resetForm();
             } catch (err) {
                 console.error(err);
-                showLoader(true, "An error occurred during processing.", "warning");
-                setTimeout(() => showLoader(false), 3000);
+                alert("An error occurred during processing.");
+            } finally {
+                // Hide Spinner
+                $('loader').style.display = 'none';
             }
         };
 
@@ -443,9 +439,7 @@
             if(confirm("Delete recipient and photos?")) { 
                 const s = allStudents.find(x => x.id === id);
                 if(!s) return;
-                showLoader(true, "Deleting record...");
                 await fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id, photo: s.photo, celebration_photo: s.celebration_photo }) }); 
-                showLoader(false);
                 fetchList(); 
             } 
         }
@@ -464,27 +458,41 @@
             setTimeout(() => {
                 const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
                 cv.width = 300; cv.height = 420; 
+                
                 ctx.strokeStyle = "#c9a227"; ctx.lineWidth = 3; ctx.strokeRect(5, 5, 290, 410);
                 ctx.drawImage(qr, 22, 20, 256, 256);
+                
                 ctx.fillStyle = "#c9a227"; ctx.textAlign = "center";
                 ctx.font = "bold 16px Segoe UI";
+                
                 const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
                 const maxWidth = 260; 
                 const words = fullName.split(' ');
-                let line = '', y = 310;
+                let line = '';
+                let y = 310; 
+                const lineHeight = 20;
+
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
-                    if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+                    let metrics = ctx.measureText(testLine);
+                    let testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
                         ctx.fillText(line.trim(), 150, y);
-                        line = words[n] + ' '; y += 20;
-                    } else line = testLine;
+                        line = words[n] + ' ';
+                        y += lineHeight;
+                    } else {
+                        line = testLine;
+                    }
                 }
                 ctx.fillText(line.trim(), 150, y);
+
                 ctx.font = "14px Segoe UI"; 
                 ctx.fillText("Scan to verify recipient details", 150, y + 30);
+
                 const a = document.createElement('a'); 
-                a.download = `${s.fName}_scholarship_qrcode.png`; 
-                a.href = cv.toDataURL("image/png"); a.click();
+                a.download = `${s.fName}_${s.oName}_${s.lName}_${s.year}_scholarship_qrcode.png`; 
+                a.href = cv.toDataURL("image/png"); 
+                a.click();
             }, 200);
         }
 
