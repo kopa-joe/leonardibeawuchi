@@ -42,10 +42,9 @@
         .queue-table th { background: #c9a227; color: white; padding: 10px; }
         #qr-buffer { position: absolute; left: -9999px; top: -9999px; }
 
-        /* Loading Spinner Overlay */
         .loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.8); display: none;
+            background: rgba(255, 255, 255, 0.9); display: none;
             flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
         }
         .spinner {
@@ -59,7 +58,7 @@
 <body>
     <div id="loader" class="loader-overlay">
         <div class="spinner"></div>
-        <p style="margin-top: 15px; color: var(--primary); font-weight: bold;">Processing, please wait...</p>
+        <p id="loaderText" style="margin-top: 15px; color: var(--primary); font-weight: bold; text-align: center;">Processing...</p>
     </div>
 
     <div id="qr-buffer"></div>
@@ -155,6 +154,8 @@
 
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
 
+        const updateLoader = (text) => { $('loaderText').innerText = text; };
+
         async function fetchList() {
             const res = await fetch('/data/data.json');
             allStudents = await res.json();
@@ -195,12 +196,12 @@
                 }
             };
 
-            const alphaOnly = /^[A-Za-z]{3,}$/;
+            const alphaOnly = /^[A-Za-z ]{3,}$/;
             check('class', "Selection required", !$('class').value);
             check('year', "Min 2025, Max 2035", !$('year').value || $('year').value < 2025 || $('year').value > 2035);
-            check('fName', "Min 3 alphabets only", !alphaOnly.test($('fName').value.trim()));
-            check('lName', "Min 3 alphabets only", !alphaOnly.test($('lName').value.trim()));
-            check('oName', "Min 3 alphabets only", !alphaOnly.test($('oName').value.trim()));
+            check('fName', "Min 3 alphabets", !alphaOnly.test($('fName').value.trim()));
+            check('lName', "Min 3 alphabets", !alphaOnly.test($('lName').value.trim()));
+            check('oName', "Min 3 alphabets", !alphaOnly.test($('oName').value.trim()));
             ['s_math','s_phys','s_chem','s_bio','s_eng'].forEach(s => {
                 const val = $(s).value;
                 check(s, "0-100", val === "" || val < 0 || val > 100);
@@ -212,7 +213,7 @@
         };
 
         const fmt = v => {
-            let s = v.replace(/[^a-zA-Z]/g, ''); 
+            let s = v.trim();
             return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
         };
 
@@ -233,7 +234,7 @@
             const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
 
             if (total < 75) {
-                alert("User score less than 75% threshold. Profile will not be added.");
+                alert("Score below 75% threshold.");
                 return false;
             }
 
@@ -256,53 +257,32 @@
             
             const sorted = getPrioritySortedQueue(pendingQueue);
             const posLabel = ["1st", "2nd", "3rd"];
-            
-            $('queueList').innerHTML = pendingQueue.map((u) => {
-                const itemIdxInSorted = sorted.indexOf(u);
-                let displayPos = "";
+            let rankIdx = 0;
 
-                if (itemIdxInSorted === 0) {
-                    displayPos = posLabel[0];
-                } else if (itemIdxInSorted < 3) {
-                    const prev = sorted[itemIdxInSorted - 1];
-                    const isAllSubjectTie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                    
-                    if (isAllSubjectTie) {
-                        let firstTieIdx = itemIdxInSorted;
-                        while(firstTieIdx > 0) {
-                            const current = sorted[firstTieIdx];
-                            const comparative = sorted[firstTieIdx - 1];
-                            const tieCheck = (current.score === comparative.score && current.scores.m === comparative.scores.m && current.scores.p === comparative.scores.p && current.scores.c === comparative.scores.c && current.scores.b === comparative.scores.b && current.scores.e === comparative.scores.e);
-                            if (tieCheck) firstTieIdx--;
-                            else break;
-                        }
-                        displayPos = posLabel[firstTieIdx];
-                    } else {
-                        displayPos = posLabel[itemIdxInSorted];
-                    }
-                } else {
-                    displayPos = "Discarded (Not Top 3)";
+            $('queueList').innerHTML = sorted.map((u, i) => {
+                let displayPos = "";
+                if (i > 0) {
+                    const prev = sorted[i - 1];
+                    const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                    if (!tie) rankIdx++;
                 }
 
-                const idx = pendingQueue.indexOf(u);
-                return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="pendingQueue.splice(${idx},1);renderQueue()">Remove</button></td></tr>`;
+                if (rankIdx < 3) displayPos = posLabel[rankIdx];
+                else displayPos = "Discarded (Not Top 3)";
+
+                return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="pendingQueue.splice(pendingQueue.indexOf(u),1);renderQueue()">Remove</button></td></tr>`;
             }).join('');
         }
 
         $('studentForm').onsubmit = async (e) => {
             e.preventDefault();
-            
-            // Show Spinner
             $('loader').style.display = 'flex';
+            const eid = $('editId').value;
 
             try {
-                // 1. Handle Single Edit Mode
-                const eid = $('editId').value;
                 if (eid) {
-                    if (!validate()) {
-                        $('loader').style.display = 'none';
-                        return;
-                    }
+                    if (!validate()) { $('loader').style.display = 'none'; return; }
+                    updateLoader(`Updating ${$('fName').value}...`);
                     const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
                     const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
                     
@@ -320,78 +300,59 @@
                     return;
                 }
 
-                // 2. Handle Batch Creation
-                if ($('fName').value.trim() !== "") {
-                    const added = addToQueue();
-                    if (!added) {
-                        $('loader').style.display = 'none';
-                        return;
-                    } 
-                }
-
-                if (pendingQueue.length === 0) {
-                    alert("The queue is empty. Please add users first.");
-                    $('loader').style.display = 'none';
-                    return;
-                }
+                if ($('fName').value.trim() !== "") addToQueue();
+                if (pendingQueue.length === 0) { alert("Queue empty."); $('loader').style.display = 'none'; return; }
 
                 const sorted = getPrioritySortedQueue(pendingQueue);
                 const posNames = ["1st Position", "2nd Position", "3rd Position"];
-                let savedCount = 0;
+                let savedCount = 0, rankIdx = 0, errors = [];
 
                 for (let i = 0; i < sorted.length; i++) {
                     const u = sorted[i];
-                    let assignedPos = "";
-
-                    if (i === 0) {
-                        assignedPos = posNames[0];
-                    } else if (i < 3) {
+                    if (i > 0) {
                         const prev = sorted[i - 1];
-                        const isAbsoluteTie = (
-                            u.score === prev.score && 
-                            u.scores.m === prev.scores.m && 
-                            u.scores.p === prev.scores.p && 
-                            u.scores.c === prev.scores.c && 
-                            u.scores.b === prev.scores.b && 
-                            u.scores.e === prev.scores.e
-                        );
-
-                        if (isAbsoluteTie) {
-                            assignedPos = prev.assignedPos;
-                        } else {
-                            assignedPos = posNames[i];
-                        }
+                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                        if (!tie) rankIdx++;
                     }
 
-                    if (assignedPos) {
-                        const now = new Date();
-                        const pad = (n) => n.toString().padStart(2, '0');
-                        const dtStr = now.getFullYear().toString() + pad(now.getMonth()+1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-                        const dtRev = dtStr.split('').reverse().join('');
-                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}`;
+                    if (rankIdx < 3) {
+                        try {
+                            const stepStr = `(User ${i+1}/${sorted.length})`;
+                            updateLoader(`${stepStr} Uploading media for ${u.fName}...`);
+                            
+                            const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
+                            const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
+                            
+                            // Unique ID generation with random salt to prevent millisecond collisions
+                            const now = new Date();
+                            const salt = Math.floor(Math.random() * 900) + 100;
+                            const dtStr = now.getFullYear().toString().slice(-2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0') + now.getSeconds().toString().padStart(2,'0');
+                            const cid = `${u.fName.slice(0,2).toUpperCase()}${dtStr}${salt}${u.lName.charAt(0).toUpperCase()}`;
 
-                        const student = {
-                            id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
-                            class: $('class').value, year: +$('year').value, position: assignedPos,
-                            score: u.score.toFixed(1) + "%", 
-                            details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
-                            photo: await uploadRawFile(u.photo) || 'img/default.png',
-                            celebration_photo: await uploadRawFile(u.celeb) || '',
-                            thanks: u.thanks
-                        };
+                            const student = {
+                                id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
+                                class: $('class').value, year: +$('year').value, position: posNames[rankIdx],
+                                score: u.score.toFixed(1) + "%", 
+                                details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
+                                photo: photoPath, celebration_photo: celebPath, thanks: u.thanks
+                            };
 
-                        await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                        savedCount++;
+                            await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
+                            savedCount++;
+                        } catch (fileErr) {
+                            errors.push(`${u.fName}: ${fileErr.message}`);
+                        }
                     }
                 }
 
-                alert(`Batch Complete: ${savedCount} users successfully saved based on ranking.`);
+                if (errors.length > 0) alert(`Saved ${savedCount} users. Errors occurred for: \n${errors.join('\n')}`);
+                else alert(`Batch Complete: ${savedCount} users saved successfully.`);
+                
                 resetForm();
             } catch (err) {
                 console.error(err);
-                alert("An error occurred during processing.");
+                alert("Critical error occurred.");
             } finally {
-                // Hide Spinner
                 $('loader').style.display = 'none';
             }
         };
@@ -400,6 +361,7 @@
             if (!file) return null;
             const fd = new FormData(); fd.append('image', file);
             const res = await fetch('/upload', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error("Upload failed");
             const data = await res.json();
             return data.filePath;
         }
@@ -436,7 +398,7 @@
         }
 
         async function remove(id) { 
-            if(confirm("Delete recipient and photos?")) { 
+            if(confirm("Delete record?")) { 
                 const s = allStudents.find(x => x.id === id);
                 if(!s) return;
                 await fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id, photo: s.photo, celebration_photo: s.celebration_photo }) }); 
@@ -458,41 +420,15 @@
             setTimeout(() => {
                 const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
                 cv.width = 300; cv.height = 420; 
-                
                 ctx.strokeStyle = "#c9a227"; ctx.lineWidth = 3; ctx.strokeRect(5, 5, 290, 410);
                 ctx.drawImage(qr, 22, 20, 256, 256);
-                
                 ctx.fillStyle = "#c9a227"; ctx.textAlign = "center";
                 ctx.font = "bold 16px Segoe UI";
-                
                 const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
-                const maxWidth = 260; 
-                const words = fullName.split(' ');
-                let line = '';
-                let y = 310; 
-                const lineHeight = 20;
-
-                for (let n = 0; n < words.length; n++) {
-                    let testLine = line + words[n] + ' ';
-                    let metrics = ctx.measureText(testLine);
-                    let testWidth = metrics.width;
-                    if (testWidth > maxWidth && n > 0) {
-                        ctx.fillText(line.trim(), 150, y);
-                        line = words[n] + ' ';
-                        y += lineHeight;
-                    } else {
-                        line = testLine;
-                    }
-                }
-                ctx.fillText(line.trim(), 150, y);
-
+                ctx.fillText(fullName.slice(0, 25), 150, 310);
                 ctx.font = "14px Segoe UI"; 
-                ctx.fillText("Scan to verify recipient details", 150, y + 30);
-
-                const a = document.createElement('a'); 
-                a.download = `${s.fName}_${s.oName}_${s.lName}_${s.year}_scholarship_qrcode.png`; 
-                a.href = cv.toDataURL("image/png"); 
-                a.click();
+                ctx.fillText("Scan to verify recipient", 150, 340);
+                const a = document.createElement('a'); a.download = `${s.fName}_qr.png`; a.href = cv.toDataURL(); a.click();
             }, 200);
         }
 
