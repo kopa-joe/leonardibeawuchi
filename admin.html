@@ -42,26 +42,24 @@
         .queue-table th { background: #c9a227; color: white; padding: 10px; }
         #qr-buffer { position: absolute; left: -9999px; top: -9999px; }
 
-        /* Spinner Overlay Styles */
-        #loaderOverlay {
+        /* Loading Spinner Overlay */
+        .loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.85);
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            z-index: 10000;
+            background: rgba(255, 255, 255, 0.8); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
         }
         .spinner {
-            width: 50px; height: 50px;
-            border: 5px solid #f3f3f3; border-top: 5px solid var(--primary);
-            border-radius: 50%; animation: spin 1s linear infinite;
+            width: 50px; height: 50px; border: 5px solid var(--disabled);
+            border-top: 5px solid var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite;
         }
-        #loaderText { margin-top: 15px; font-weight: bold; color: var(--primary); font-size: 1.1rem; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div id="loaderOverlay">
+    <div id="loader" class="loader-overlay">
         <div class="spinner"></div>
-        <div id="loaderText">Processing...</div>
+        <p style="margin-top: 15px; color: var(--primary); font-weight: bold;">Processing, please wait...</p>
     </div>
 
     <div id="qr-buffer"></div>
@@ -154,9 +152,6 @@
         let allStudents = [], lockedPhotoPath = "", pendingQueue = [];
         
         $('year').value = Math.max(2025, startY);
-
-        const showLoader = (text) => { $('loaderText').innerText = text; $('loaderOverlay').style.display = 'flex'; };
-        const hideLoader = () => { $('loaderOverlay').style.display = 'none'; };
 
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
 
@@ -258,17 +253,20 @@
         function renderQueue() {
             if (!pendingQueue.length) { $('queueSection').style.display = 'none'; return; }
             $('queueSection').style.display = 'block';
+            
             const sorted = getPrioritySortedQueue(pendingQueue);
             const posLabel = ["1st", "2nd", "3rd"];
             
             $('queueList').innerHTML = pendingQueue.map((u) => {
                 const itemIdxInSorted = sorted.indexOf(u);
                 let displayPos = "";
+
                 if (itemIdxInSorted === 0) {
                     displayPos = posLabel[0];
                 } else if (itemIdxInSorted < 3) {
                     const prev = sorted[itemIdxInSorted - 1];
                     const isAllSubjectTie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                    
                     if (isAllSubjectTie) {
                         let firstTieIdx = itemIdxInSorted;
                         while(firstTieIdx > 0) {
@@ -285,6 +283,7 @@
                 } else {
                     displayPos = "Discarded (Not Top 3)";
                 }
+
                 const idx = pendingQueue.indexOf(u);
                 return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="pendingQueue.splice(${idx},1);renderQueue()">Remove</button></td></tr>`;
             }).join('');
@@ -292,87 +291,109 @@
 
         $('studentForm').onsubmit = async (e) => {
             e.preventDefault();
-            const eid = $('editId').value;
+            
+            // Show Spinner
+            $('loader').style.display = 'flex';
 
-            if (eid) {
-                if (!validate()) return;
-                showLoader("Updating profile...");
-                const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
-                const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
-                
-                showLoader("Uploading celebration photo...");
-                const student = {
-                    id: eid, fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
-                    class: $('class').value, year: +$('year').value, position: $('pos').value,
-                    score: total.toFixed(1) + "%", details: { math: m, phys: p, chem: c, bio: b, eng: e },
-                    photo: lockedPhotoPath,
-                    celebration_photo: ($('celebFile').files[0] ? await uploadRawFile($('celebFile').files[0]) : (allStudents.find(x=>x.id===eid)?.celebration_photo) || ''),
-                    thanks: $('thanks').value.trim()
-                };
-                showLoader("Saving changes...");
-                await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                hideLoader();
-                alert("Profile Updated Successfully!");
-                resetForm();
-                return;
-            }
+            try {
+                // 1. Handle Single Edit Mode
+                const eid = $('editId').value;
+                if (eid) {
+                    if (!validate()) {
+                        $('loader').style.display = 'none';
+                        return;
+                    }
+                    const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
+                    const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
+                    
+                    const student = {
+                        id: eid, fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
+                        class: $('class').value, year: +$('year').value, position: $('pos').value,
+                        score: total.toFixed(1) + "%", details: { math: m, phys: p, chem: c, bio: b, eng: e },
+                        photo: lockedPhotoPath,
+                        celebration_photo: ($('celebFile').files[0] ? await uploadRawFile($('celebFile').files[0]) : (allStudents.find(x=>x.id===eid)?.celebration_photo) || ''),
+                        thanks: $('thanks').value.trim()
+                    };
+                    await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
+                    alert("Profile Updated Successfully!");
+                    resetForm();
+                    return;
+                }
 
-            if ($('fName').value.trim() !== "") {
-                const added = addToQueue();
-                if (!added) return; 
-            }
+                // 2. Handle Batch Creation
+                if ($('fName').value.trim() !== "") {
+                    const added = addToQueue();
+                    if (!added) {
+                        $('loader').style.display = 'none';
+                        return;
+                    } 
+                }
 
-            if (pendingQueue.length === 0) {
-                alert("The queue is empty. Please add users first.");
-                return;
-            }
+                if (pendingQueue.length === 0) {
+                    alert("The queue is empty. Please add users first.");
+                    $('loader').style.display = 'none';
+                    return;
+                }
 
-            showLoader("Calculating final rankings...");
-            const sorted = getPrioritySortedQueue(pendingQueue);
-            const posNames = ["1st Position", "2nd Position", "3rd Position"];
-            let savedCount = 0;
+                const sorted = getPrioritySortedQueue(pendingQueue);
+                const posNames = ["1st Position", "2nd Position", "3rd Position"];
+                let savedCount = 0;
 
-            for (let i = 0; i < sorted.length; i++) {
-                const u = sorted[i];
-                let assignedPos = "";
-                if (i === 0) {
-                    assignedPos = posNames[0];
-                } else if (i < 3) {
-                    const prev = sorted[i - 1];
-                    const isAbsoluteTie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                    if (isAbsoluteTie) {
-                        assignedPos = prev.assignedPos;
-                    } else {
-                        assignedPos = posNames[i];
+                for (let i = 0; i < sorted.length; i++) {
+                    const u = sorted[i];
+                    let assignedPos = "";
+
+                    if (i === 0) {
+                        assignedPos = posNames[0];
+                    } else if (i < 3) {
+                        const prev = sorted[i - 1];
+                        const isAbsoluteTie = (
+                            u.score === prev.score && 
+                            u.scores.m === prev.scores.m && 
+                            u.scores.p === prev.scores.p && 
+                            u.scores.c === prev.scores.c && 
+                            u.scores.b === prev.scores.b && 
+                            u.scores.e === prev.scores.e
+                        );
+
+                        if (isAbsoluteTie) {
+                            assignedPos = prev.assignedPos;
+                        } else {
+                            assignedPos = posNames[i];
+                        }
+                    }
+
+                    if (assignedPos) {
+                        const now = new Date();
+                        const pad = (n) => n.toString().padStart(2, '0');
+                        const dtStr = now.getFullYear().toString() + pad(now.getMonth()+1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
+                        const dtRev = dtStr.split('').reverse().join('');
+                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}`;
+
+                        const student = {
+                            id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
+                            class: $('class').value, year: +$('year').value, position: assignedPos,
+                            score: u.score.toFixed(1) + "%", 
+                            details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
+                            photo: await uploadRawFile(u.photo) || 'img/default.png',
+                            celebration_photo: await uploadRawFile(u.celeb) || '',
+                            thanks: u.thanks
+                        };
+
+                        await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
+                        savedCount++;
                     }
                 }
 
-                if (assignedPos) {
-                    showLoader(`Saving ${u.fName} (${assignedPos})...`);
-                    const now = new Date();
-                    const pad = (n) => n.toString().padStart(2, '0');
-                    const dtStr = now.getFullYear().toString() + pad(now.getMonth()+1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-                    const dtRev = dtStr.split('').reverse().join('');
-                    const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}`;
-
-                    const student = {
-                        id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
-                        class: $('class').value, year: +$('year').value, position: assignedPos,
-                        score: u.score.toFixed(1) + "%", 
-                        details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
-                        photo: await uploadRawFile(u.photo) || 'img/default.png',
-                        celebration_photo: await uploadRawFile(u.celeb) || '',
-                        thanks: u.thanks
-                    };
-
-                    await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                    savedCount++;
-                }
+                alert(`Batch Complete: ${savedCount} users successfully saved based on ranking.`);
+                resetForm();
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred during processing.");
+            } finally {
+                // Hide Spinner
+                $('loader').style.display = 'none';
             }
-
-            hideLoader();
-            alert(`Batch Complete: ${savedCount} users successfully saved based on ranking.`);
-            resetForm();
         };
 
         async function uploadRawFile(file) {
@@ -418,9 +439,7 @@
             if(confirm("Delete recipient and photos?")) { 
                 const s = allStudents.find(x => x.id === id);
                 if(!s) return;
-                showLoader("Deleting record...");
                 await fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id, photo: s.photo, celebration_photo: s.celebration_photo }) }); 
-                hideLoader();
                 fetchList(); 
             } 
         }
@@ -438,29 +457,38 @@
 
             setTimeout(() => {
                 const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
-                cv.width = 300; cv.height = 420;
+                cv.width = 300; cv.height = 420; 
+                
                 ctx.strokeStyle = "#c9a227"; ctx.lineWidth = 3; ctx.strokeRect(5, 5, 290, 410);
                 ctx.drawImage(qr, 22, 20, 256, 256);
+                
                 ctx.fillStyle = "#c9a227"; ctx.textAlign = "center";
                 ctx.font = "bold 16px Segoe UI";
+                
                 const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
                 const maxWidth = 260; 
                 const words = fullName.split(' ');
                 let line = '';
-                let y = 310;
+                let y = 310; 
                 const lineHeight = 20;
+
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
                     let metrics = ctx.measureText(testLine);
-                    if (metrics.width > maxWidth && n > 0) {
+                    let testWidth = metrics.width;
+                    if (testWidth > maxWidth && n > 0) {
                         ctx.fillText(line.trim(), 150, y);
                         line = words[n] + ' ';
                         y += lineHeight;
-                    } else { line = testLine; }
+                    } else {
+                        line = testLine;
+                    }
                 }
                 ctx.fillText(line.trim(), 150, y);
+
                 ctx.font = "14px Segoe UI"; 
                 ctx.fillText("Scan to verify recipient details", 150, y + 30);
+
                 const a = document.createElement('a'); 
                 a.download = `${s.fName}_${s.oName}_${s.lName}_${s.year}_scholarship_qrcode.png`; 
                 a.href = cv.toDataURL("image/png"); 
