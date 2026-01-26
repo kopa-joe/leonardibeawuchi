@@ -157,7 +157,6 @@
 
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
 
-        // Helper to show/hide specific loader states
         const showLoader = (show, text = "", type = "spin") => {
             const loader = $('loader');
             const icon = $('loaderIcon');
@@ -316,19 +315,14 @@
 
         $('studentForm').onsubmit = async (e) => {
             e.preventDefault();
-            
             const eid = $('editId').value;
 
             try {
-                // 1. Handle Single Edit Mode
                 if (eid) {
                     if (!validate()) return;
-                    showLoader(true, `Updating profile for ${$('fName').value}...`);
-
+                    showLoader(true, `Syncing ${$('fName').value}'s academic records...`);
                     const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
                     const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
-                    
-                    showLoader(true, `Syncing ${$('fName').value}'s academic records...`);
                     
                     const student = {
                         id: eid, fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
@@ -339,16 +333,13 @@
                         thanks: $('thanks').value.trim()
                     };
                     await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                    
                     showLoader(true, "Profile Updated Successfully!", "success");
                     setTimeout(() => { showLoader(false); resetForm(); }, 1500);
                     return;
                 }
 
-                // 2. Handle Batch Creation
                 if ($('fName').value.trim() !== "") {
-                    const added = addToQueue();
-                    if (!added) return;
+                    addToQueue();
                 }
 
                 if (pendingQueue.length === 0) {
@@ -364,7 +355,7 @@
                     const u = sorted[i];
                     let assignedPos = "";
 
-                    if (i === 0) { assignedPos = posNames[0]; } 
+                    if (i === 0) assignedPos = posNames[0];
                     else if (i < 3) {
                         const prev = sorted[i - 1];
                         const isAbsoluteTie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
@@ -378,10 +369,11 @@
                         const now = new Date();
                         const pad = (n) => n.toString().padStart(2, '0');
                         const dtStr = now.getFullYear().toString() + pad(now.getMonth()+1) + pad(now.getDate()) + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-                        const dtRev = dtStr.split('').reverse().join('');
-                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}`;
+                        const dtRev = dtStr.split('').reverse().join('').substring(0,8);
+                        const cid = `${u.fName.slice(0,2).toUpperCase()}${dtRev}${u.lName.charAt(0).toUpperCase()}${Math.floor(Math.random()*100)}`;
 
                         const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
+                        const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
                         
                         showLoader(true, `${stepPrefix} Syncing ${u.fName}'s academic records...`);
                         
@@ -390,9 +382,7 @@
                             class: $('class').value, year: +$('year').value, position: assignedPos,
                             score: u.score.toFixed(1) + "%", 
                             details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
-                            photo: photoPath,
-                            celebration_photo: await uploadRawFile(u.celeb) || '',
-                            thanks: u.thanks
+                            photo: photoPath, celebration_photo: celebPath, thanks: u.thanks
                         };
 
                         await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
@@ -400,7 +390,7 @@
                     }
                 }
 
-                showLoader(true, `Batch Complete: ${savedCount} users successfully saved.`, "success");
+                showLoader(true, `Batch Complete: ${savedCount} users saved.`, "success");
                 setTimeout(() => { showLoader(false); resetForm(); }, 2000);
 
             } catch (err) {
@@ -474,41 +464,27 @@
             setTimeout(() => {
                 const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
                 cv.width = 300; cv.height = 420; 
-                
                 ctx.strokeStyle = "#c9a227"; ctx.lineWidth = 3; ctx.strokeRect(5, 5, 290, 410);
                 ctx.drawImage(qr, 22, 20, 256, 256);
-                
                 ctx.fillStyle = "#c9a227"; ctx.textAlign = "center";
                 ctx.font = "bold 16px Segoe UI";
-                
                 const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
                 const maxWidth = 260; 
                 const words = fullName.split(' ');
-                let line = '';
-                let y = 310; 
-                const lineHeight = 20;
-
+                let line = '', y = 310;
                 for (let n = 0; n < words.length; n++) {
                     let testLine = line + words[n] + ' ';
-                    let metrics = ctx.measureText(testLine);
-                    let testWidth = metrics.width;
-                    if (testWidth > maxWidth && n > 0) {
+                    if (ctx.measureText(testLine).width > maxWidth && n > 0) {
                         ctx.fillText(line.trim(), 150, y);
-                        line = words[n] + ' ';
-                        y += lineHeight;
-                    } else {
-                        line = testLine;
-                    }
+                        line = words[n] + ' '; y += 20;
+                    } else line = testLine;
                 }
                 ctx.fillText(line.trim(), 150, y);
-
                 ctx.font = "14px Segoe UI"; 
                 ctx.fillText("Scan to verify recipient details", 150, y + 30);
-
                 const a = document.createElement('a'); 
-                a.download = `${s.fName}_${s.oName}_${s.lName}_${s.year}_scholarship_qrcode.png`; 
-                a.href = cv.toDataURL("image/png"); 
-                a.click();
+                a.download = `${s.fName}_scholarship_qrcode.png`; 
+                a.href = cv.toDataURL("image/png"); a.click();
             }, 200);
         }
 
