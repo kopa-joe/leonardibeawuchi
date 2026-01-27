@@ -336,7 +336,10 @@
                             updateLoader(`Processing ${u.fName} (${savedCount + 1}/${totalToCreate})...`);
                             const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
                             const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
-                            
+                            // Helper to reverse strings
+                            const rev = s => s.split('').reverse().join('');
+
+                            // Within the for loop in the onsubmit handler:
                             const now = new Date();
                             const salt = Math.floor(Math.random() * 900) + 100;
                             // Full Timestamp: YYYYMMDDHHMMSS
