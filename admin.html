@@ -238,6 +238,7 @@
             }
 
             pendingQueue.push({
+                uid: Date.now() + Math.random(),
                 fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
                 scores: { m, p, c, b, e }, score: total,
                 photo: $('photoFile').files[0], celeb: $('celebFile').files[0],
@@ -248,6 +249,11 @@
             renderQueue();
             ['fName','lName','oName','s_math','s_phys','s_chem','s_bio','s_eng','photoFile','celebFile','thanks'].forEach(i => $(i).value = "");
             return true;
+        }
+
+        function removeFromQueue(uid) {
+            pendingQueue = pendingQueue.filter(u => u.uid !== uid);
+            renderQueue();
         }
 
         function renderQueue() {
@@ -263,14 +269,13 @@
                 if (i > 0) {
                     const prev = sorted[i - 1];
                     const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                    // Competition Ranking: Jump to current loop index if not tied
                     if (!tie) rankIdx = i; 
                 }
 
                 if (rankIdx < 3) displayPos = posLabel[rankIdx];
                 else displayPos = "Discarded (Not Top 3)";
 
-                return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="pendingQueue.splice(pendingQueue.indexOf(u),1);renderQueue()">Remove</button></td></tr>`;
+                return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="removeFromQueue(${u.uid})">Remove</button></td></tr>`;
             }).join('');
         }
 
@@ -312,7 +317,6 @@
                     if (i > 0) {
                         const prev = sorted[i - 1];
                         const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                        // Competition Ranking: 1, 1, 3
                         if (!tie) rankIdx = i; 
                     }
 
@@ -322,7 +326,6 @@
                             const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
                             const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
                             
-                            // Salted ID generation
                             const now = new Date();
                             const salt = Math.floor(Math.random() * 900) + 100;
                             const dtStr = now.getFullYear().toString().slice(-2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0') + now.getSeconds().toString().padStart(2,'0');
