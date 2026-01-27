@@ -312,6 +312,17 @@
                 const posNames = ["1st Position", "2nd Position", "3rd Position"];
                 let savedCount = 0, rankIdx = 0, errors = [];
 
+                // Calculate how many will actually be created (only rank 0, 1, 2)
+                let tempRank = 0;
+                const totalToCreate = sorted.filter((u, i) => {
+                    if (i > 0) {
+                        const prev = sorted[i - 1];
+                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                        if (!tie) tempRank = i;
+                    }
+                    return tempRank < 3;
+                }).length;
+
                 for (let i = 0; i < sorted.length; i++) {
                     const u = sorted[i];
                     if (i > 0) {
@@ -322,7 +333,7 @@
 
                     if (rankIdx < 3) {
                         try {
-                            updateLoader(`Processing ${u.fName} (${i + 1}/${sorted.length})...`);
+                            updateLoader(`Processing ${u.fName} (${savedCount + 1}/${totalToCreate})...`);
                             const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
                             const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
                             
