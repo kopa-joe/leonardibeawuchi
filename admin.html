@@ -324,11 +324,11 @@
                 }).length;
 
                 for (let i = 0; i < sorted.length; i++) {
-                    const u = sorted[i];
-                    if (i > 0) {
-                        const prev = sorted[i - 1];
-                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                        if (!tie) rankIdx = i; 
+                const u = sorted[i];
+                if (i > 0) {
+                    const prev = sorted[i - 1];
+                    const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                    if (!tie) rankIdx = i;
                     }
 
                     if (rankIdx < 3) {
@@ -339,8 +339,20 @@
                             
                             const now = new Date();
                             const salt = Math.floor(Math.random() * 900) + 100;
-                            const dtStr = now.getFullYear().toString().slice(-2) + (now.getMonth()+1).toString().padStart(2,'0') + now.getDate().toString().padStart(2,'0') + now.getHours().toString().padStart(2,'0') + now.getMinutes().toString().padStart(2,'0') + now.getSeconds().toString().padStart(2,'0');
-                            const cid = `${u.fName.slice(0,2).toUpperCase()}${dtStr}${salt}${u.lName.charAt(0).toUpperCase()}`;
+                            // Full Timestamp: YYYYMMDDHHMMSS
+                            const fullTS = now.getFullYear().toString() + 
+                                        (now.getMonth() + 1).toString().padStart(2, '0') + 
+                                        now.getDate().toString().padStart(2, '0') + 
+                                        now.getHours().toString().padStart(2, '0') + 
+                                        now.getMinutes().toString().padStart(2, '0') + 
+                                        now.getSeconds().toString().padStart(2, '0');
+
+                            // Formula: [FName(2) Rev] + [TS Rev] + [MName(1)] + [Salt] + [LName(2) Rev]
+                            const cid = rev(u.fName.slice(0, 2).toUpperCase()) + 
+                                        rev(fullTS) + 
+                                        u.oName.charAt(0).toUpperCase() + 
+                                        salt + 
+                                        rev(u.lName.slice(0, 2).toUpperCase());
 
                             const student = {
                                 id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
