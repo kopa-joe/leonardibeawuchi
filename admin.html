@@ -160,8 +160,19 @@
         const $ = id => document.getElementById(id);
         const startY = new Date().getFullYear() - 1;
         let allStudents = [], lockedPhotoPath = "", pendingQueue = [];
-        
         $('year').value = Math.max(2025, startY);
+        window.addEventListener('keydown', (e) => {
+            const isModalVisible = $('loader').style.display === 'flex';
+            const isButtonActive = $('closeModalBtn').style.display === 'block';
+            
+            // Only trigger if the success/warning icon is finished processing (button is visible)
+            if (isModalVisible && isButtonActive) {
+                if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault(); // Prevent page scrolling on Space or form resubmission on Enter
+                    resetForm();
+                }
+            }
+        });
 
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
         const updateLoader = (text) => { $('loaderText').innerText = text; };
