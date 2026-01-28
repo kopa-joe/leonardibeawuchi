@@ -44,7 +44,7 @@
 
         .loader-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(255, 255, 255, 0.9); display: none;
+            background: rgba(255, 255, 255, 0.95); display: none;
             flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
         }
         .spinner {
@@ -52,13 +52,24 @@
             border-top: 5px solid var(--accent); border-radius: 50%;
             animation: spin 1s linear infinite;
         }
+        /* New Icon Styles */
+        .status-icon {
+            width: 80px; height: 80px; border-radius: 50%; 
+            display: none; align-items: center; justify-content: center;
+            font-size: 40px; color: white; margin-bottom: 15px;
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="loader" class="loader-overlay">
-        <div class="spinner"></div>
-        <p id="loaderText" style="margin-top: 15px; color: var(--primary); font-weight: bold; text-align: center;">Processing...</p>
+        <div id="spinner" class="spinner"></div>
+        <div id="successIcon" class="status-icon" style="background: var(--success);">✓</div>
+        <div id="warnIcon" class="status-icon" style="background: var(--accent);">!</div>
+        <p id="loaderText" style="margin-top: 15px; color: var(--primary); font-weight: bold; text-align: center; max-width: 80%;">Processing...</p>
+        <button id="closeModalBtn" onclick="resetForm()" style="display:none; margin-top:20px; padding:10px 25px; background:var(--primary); color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">CONTINUE</button>
     </div>
 
     <div id="qr-buffer"></div>
@@ -155,6 +166,15 @@
         const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
         const updateLoader = (text) => { $('loaderText').innerText = text; };
 
+        // New Helper: Show final status in the overlay
+        const showFinalStatus = (type, msg) => {
+            $('spinner').style.display = 'none';
+            $('successIcon').style.display = type === 'success' ? 'flex' : 'none';
+            $('warnIcon').style.display = type === 'warn' ? 'flex' : 'none';
+            $('loaderText').innerText = msg;
+            $('closeModalBtn').style.display = 'block';
+        };
+
         async function fetchList() {
             const res = await fetch('/data/data.json');
             allStudents = await res.json();
@@ -175,7 +195,10 @@
 
         function copyLink(id) {
             const url = window.location.origin + '/index.html?id=' + id;
-            navigator.clipboard.writeText(url).then(() => alert("Direct link copied to clipboard!"));
+            navigator.clipboard.writeText(url).then(() => {
+                $('loader').style.display = 'flex';
+                showFinalStatus('success', 'Direct link copied to clipboard!');
+            });
         }
 
         const validate = () => {
@@ -233,7 +256,8 @@
             const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
 
             if (total < 75) {
-                alert("Score below 75% threshold.");
+                $('loader').style.display = 'flex';
+                showFinalStatus('warn', "Score below 75% threshold.");
                 return false;
             }
 
@@ -282,6 +306,11 @@
         $('studentForm').onsubmit = async (e) => {
             e.preventDefault();
             const eid = $('editId').value;
+            $('spinner').style.display = 'block';
+            $('successIcon').style.display = 'none';
+            $('warnIcon').style.display = 'none';
+            $('closeModalBtn').style.display = 'none';
+            $('loaderText').innerText = "Processing...";
             $('loader').style.display = 'flex';
 
             try {
@@ -300,19 +329,17 @@
                         thanks: $('thanks').value.trim()
                     };
                     await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
-                    alert("Profile Updated Successfully!");
-                    resetForm();
+                    showFinalStatus('success', "Profile Updated Successfully!");
                     return;
                 }
 
                 if ($('fName').value.trim() !== "") addToQueue();
-                if (pendingQueue.length === 0) { alert("Queue empty."); $('loader').style.display = 'none'; return; }
+                if (pendingQueue.length === 0) { showFinalStatus('warn', "Queue empty."); return; }
 
                 const sorted = getPrioritySortedQueue(pendingQueue);
                 const posNames = ["1st Position", "2nd Position", "3rd Position"];
                 let savedCount = 0, rankIdx = 0, errors = [];
 
-                // Calculate how many will actually be created (only rank 0, 1, 2)
                 let tempRank = 0;
                 const totalToCreate = sorted.filter((u, i) => {
                     if (i > 0) {
@@ -324,11 +351,11 @@
                 }).length;
 
                 for (let i = 0; i < sorted.length; i++) {
-                const u = sorted[i];
-                if (i > 0) {
-                    const prev = sorted[i - 1];
-                    const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
-                    if (!tie) rankIdx = i;
+                    const u = sorted[i];
+                    if (i > 0) {
+                        const prev = sorted[i - 1];
+                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                        if (!tie) rankIdx = i;
                     }
 
                     if (rankIdx < 3) {
@@ -336,21 +363,17 @@
                             updateLoader(`Processing ${u.fName} (${savedCount + 1}/${totalToCreate})...`);
                             const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
                             const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
-                            // Helper to reverse strings
                             const rev = s => s.split('').reverse().join('');
 
-                            // Within the for loop in the onsubmit handler:
                             const now = new Date();
                             const salt = Math.floor(Math.random() * 900) + 100;
-                            // Full Timestamp: YYYYMMDDHHMMSS
                             const fullTS = now.getFullYear().toString() + 
-                                        (now.getMonth() + 1).toString().padStart(2, '0') + 
-                                        now.getDate().toString().padStart(2, '0') + 
-                                        now.getHours().toString().padStart(2, '0') + 
-                                        now.getMinutes().toString().padStart(2, '0') + 
-                                        now.getSeconds().toString().padStart(2, '0');
+                                         (now.getMonth() + 1).toString().padStart(2, '0') + 
+                                         now.getDate().toString().padStart(2, '0') + 
+                                         now.getHours().toString().padStart(2, '0') + 
+                                         now.getMinutes().toString().padStart(2, '0') + 
+                                         now.getSeconds().toString().padStart(2, '0');
 
-                            // Formula: [FName(2) Rev] + [TS Rev] + [MName(1)] + [Salt] + [LName(2) Rev]
                             const cid = rev(u.fName.slice(0, 2).toUpperCase()) + 
                                         rev(fullTS) + 
                                         u.oName.charAt(0).toUpperCase() + 
@@ -373,14 +396,11 @@
                     }
                 }
 
-                if (errors.length > 0) alert(`Batch partially saved. Errors: \n${errors.join('\n')}`);
-                else alert(`Batch saved: ${savedCount} users successfully.`);
-                resetForm();
+                if (errors.length > 0) showFinalStatus('warn', `Batch partially saved. Errors: \n${errors.join('\n')}`);
+                else showFinalStatus('success', `Batch saved: ${savedCount} users successfully.`);
             } catch (err) {
                 console.error(err);
-                alert("Critical error occurred during save.");
-            } finally {
-                $('loader').style.display = 'none';
+                showFinalStatus('warn', "Critical error occurred during save.");
             }
         };
 
@@ -417,6 +437,7 @@
         };
 
         function resetForm() {
+            $('loader').style.display = 'none';
             $('studentForm').reset(); $('editId').value = ""; lockedPhotoPath = ""; pendingQueue = [];
             toggleLock(false); renderQueue();
             $('posContainer').style.display = 'none'; $('addNextBtn').style.display = 'block';
