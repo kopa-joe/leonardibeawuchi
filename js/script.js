@@ -41,19 +41,37 @@ function showGalleryOnly() {
 
 function renderCards(data) {
     const container = $('recipients-container');
-    if (!data.length) return container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 2rem;">No matching records found.</p>`;
+    if (!data.length) {
+        container.innerHTML = `<p style="grid-column: 1/-1; text-align:center; padding: 2rem;">No matching records found.</p>`;
+        return;
+    }
+
+    // This sorts the data: Newest year (e.g., 2024) first, Older year (e.g., 2020) last
+    const sortedData = [...data].sort((a, b) => b.year - a.year);
     
-    container.innerHTML = data.map(r => `
-        <div class="recipient-card">
-            <div class="img-container">
-                <img src="${r.photo}" onerror="this.src='img/default.png'" onclick="openModal(this.src)">
-                ${getBadgeHTML(r.position)}
-            </div>
-            <h4>${r.fName} ${r.oName} ${r.lName}</h4>
-            <p><strong>${r.position}</strong></p>
-            <p>Year: ${r.year} | Class: ${r.class}</p>
-            <p>Score: <strong>${r.score}</strong></p>
-        </div>`).join('');
+    let html = "";
+    let currentYear = null;
+
+    sortedData.forEach(r => {
+        if (r.year !== currentYear) {
+            currentYear = r.year;
+            html += `<h2 class="year-heading">Class of ${currentYear}</h2>`;
+        }
+        
+        html += `
+            <div class="recipient-card">
+                <div class="img-container">
+                    <img src="${r.photo}" onerror="this.src='img/default.png'" onclick="openModal(this.src)">
+                    ${getBadgeHTML(r.position)}
+                </div>
+                <h4>${r.fName} ${r.oName} ${r.lName}</h4>
+                <p><strong>${r.position}</strong></p>
+                <p>Year: ${r.year} | Class: ${r.class}</p>
+                <p>Score: <strong>${r.score}</strong></p>
+            </div>`;
+    });
+
+    container.innerHTML = html;
 }
 
 const toggleScoreDetails = () => {
