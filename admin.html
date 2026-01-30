@@ -4,71 +4,155 @@
     <meta charset="UTF-8">
     <title>Scholarship Admin Dashboard</title>
     <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="apple-touch-icon" href="img/favicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Mr+De+Haviland&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
-        if (sessionStorage.getItem('isAdmin') !== 'true') { window.location.href = 'login.html'; }
+        if (sessionStorage.getItem('isAdmin') !== 'true') {
+            window.location.href = 'login.html';
+        }
     </script>
     <style>
         :root { --primary: #0b1f3a; --accent: #c9a227; --success: #27ae60; --disabled: #e9ecef; --danger: #e74c3c; }
-        body { font-family: 'Inter', sans-serif; background: #f0f2f5; padding: 20px; }
-        /* Hidden preloader to ensure fonts load before canvas draws */
-        body::after { content: "pre"; font-family: 'Bebas Neue', 'Montserrat', 'Mr De Haviland'; opacity: 0; position: fixed; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
         .container { max-width: 900px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-        h2 { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
-        .form-grid, .name-grid { display: grid; gap: 15px; grid-template-columns: 1fr 1fr; }
-        .name-grid { grid-template-columns: 1fr 1fr 1fr; }
-        .score-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; }
-        label { display: block; margin-top: 10px; font-weight: bold; font-size: 0.85rem; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 0; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .name-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+        .score-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 5px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; transition: all 0.3s; outline: none; }
+        input:disabled, select:disabled { background-color: var(--disabled); cursor: not-allowed; border: 1px solid #ccc; }
+        label { display: block; margin-top: 10px; font-weight: bold; color: #555; font-size: 0.85rem; }
+        .required-star { color: var(--danger); margin-left: 2px; }
+        .lock-icon { margin-left: 5px; color: #7f8c8d; font-size: 0.8rem; display: none; }
         .btn-row { display: flex; gap: 10px; margin-top: 20px; }
-        .save-btn { background: var(--success); color: white; border: none; padding: 15px; flex: 2; font-weight: bold; cursor: pointer; border-radius: 6px; }
-        .add-btn { background: var(--primary); color: white; border: none; padding: 15px; flex: 1; font-weight: bold; cursor: pointer; border-radius: 6px; }
+        .save-btn { background: var(--success); color: white; border: none; padding: 15px; flex: 2; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .add-btn { background: var(--primary); color: white; border: none; padding: 15px; flex: 1; border-radius: 6px; font-weight: bold; cursor: pointer; }
+        .cancel-btn { background: #95a5a6; color: white; border: none; padding: 15px; flex: 1; border-radius: 6px; cursor: pointer; display: none; }
         table { width: 100%; border-collapse: collapse; margin-top: 30px; }
         th { background: var(--primary); color: white; padding: 12px; text-align: left; }
         td { padding: 12px; border-bottom: 1px solid #eee; }
-        .link-btn, .qr-btn, .award-btn { padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; border: none; margin-top: 5px; }
-        .qr-btn { background: var(--accent); color: white; }
-        .award-btn { background: #8e44ad; color: white; }
-        .loader-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
-        #qr-buffer { position: absolute; left: -9999px; }
+        .link-btn { background: #eee; border: 1px solid #ccc; padding: 5px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .qr-btn { background: var(--accent); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .award-btn { background: #8e44ad; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; margin-top: 5px; }
+        .edit-btn { background: #3498db; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+        .del-btn { background: var(--danger); color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+        .input-error { border: 2px solid var(--danger) !important; border-radius: 25px !important; background-color: #fffafa; }
+        .error-msg { color: var(--danger); font-size: 11px; font-weight: normal; display: block; margin-top: -2px; height: 12px; }
+        #queueSection { margin-top: 30px; background: #fffdf5; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; display: none; }
+        .queue-table { width: 100%; font-size: 13px; border-collapse: collapse; }
+        .queue-table th { background: #c9a227; color: white; padding: 10px; }
+        #qr-buffer { position: absolute; left: -9999px; top: -9999px; }
+
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.95); display: none;
+            flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid var(--disabled);
+            border-top: 5px solid var(--accent); border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .status-icon {
+            width: 80px; height: 80px; border-radius: 50%; 
+            display: none; align-items: center; justify-content: center;
+            font-size: 40px; color: white; margin-bottom: 15px;
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
     <div id="loader" class="loader-overlay">
-        <p id="loaderText">Processing...</p>
-        <button id="closeModalBtn" onclick="location.reload()" style="display:none;">CONTINUE</button>
+        <div id="spinner" class="spinner"></div>
+        <div id="successIcon" class="status-icon" style="background: var(--success);">✓</div>
+        <div id="warnIcon" class="status-icon" style="background: var(--accent);">!</div>
+        <p id="loaderText" style="margin-top: 15px; color: var(--primary); font-weight: bold; text-align: center; max-width: 80%;">Processing...</p>
+        <button id="closeModalBtn" onclick="resetForm()" style="display:none; margin-top:20px; padding:10px 25px; background:var(--primary); color:white; border:none; border-radius:5px; cursor:pointer; font-weight:bold;">CONTINUE</button>
     </div>
 
     <div id="qr-buffer"></div>
     <div class="container">
-        <h2 id="formTitle">Scholarship Admin</h2>
-        <form id="studentForm">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 id="formTitle">Add New Recipient</h2>
+            <button onclick="logout()" style="background:none; border:1px solid #ccc; padding:5px 10px; cursor:pointer; border-radius:4px;">Logout</button>
+        </div>
+
+        <form id="studentForm" novalidate>
             <input type="hidden" id="editId">
-            <div class="form-grid">
-                <div><label>Class</label><select id="class"><option value="SS1">SS1</option><option value="SS2">SS2</option><option value="SS3">SS3</option></select></div>
-                <div><label>Year</label><input type="number" id="year" value="2025"></div>
+            <div id="classEntrySection">
+                <div class="form-grid">
+                    <div>
+                        <label>Class<span class="required-star">*</span><span class="lock-icon">🔒</span></label>
+                        <select id="class">
+                            <option value="">Select Class</option>
+                            <option value="SS1">SS1</option><option value="SS2">SS2</option><option value="SS3">SS3</option>
+                        </select>
+                        <span id="err_class" class="error-msg"></span>
+                    </div>
+                    <div>
+                        <label id="yearLabel">Year<span class="required-star">*</span><span class="lock-icon">🔒</span></label>
+                        <input type="number" id="year" min="2025" max="2035">
+                        <span id="err_year" class="error-msg"></span>
+                    </div>
+                </div>
             </div>
-            <div class="name-grid">
-                <input type="text" id="fName" placeholder="First Name">
-                <input type="text" id="lName" placeholder="Surname">
-                <input type="text" id="oName" placeholder="Other Names">
+
+            <div id="userFields">
+                <div class="name-grid">
+                    <div><label>First Name<span class="required-star">*</span><span class="lock-icon">🔒</span></label><input type="text" id="fName" placeholder="John"><span id="err_fName" class="error-msg"></span></div>
+                    <div><label>Surname<span class="required-star">*</span><span class="lock-icon">🔒</span></label><input type="text" id="lName" placeholder="Doe"><span id="err_lName" class="error-msg"></span></div>
+                    <div><label>Other Names<span class="required-star">*</span><span class="lock-icon">🔒</span></label><input type="text" id="oName" placeholder="Michael"><span id="err_oName" class="error-msg"></span></div>
+                </div>
+
+                <div id="posContainer" style="display:none;">
+                    <label>Position<span class="required-star">*</span><span class="lock-icon">🔒</span></label>
+                    <select id="pos">
+                        <option value="" selected disabled>Select Position</option>
+                        <option value="1st Position">1st Position</option>
+                        <option value="2nd Position">2nd Position</option>
+                        <option value="3rd Position">3rd Position</option>
+                    </select>
+                </div>
+
+                <label>Subject Scores (%)<span class="required-star">*</span><span class="lock-icon">🔒</span></label>
+                <div class="score-grid">
+                    <div><label>Maths (25%)</label><input type="number" id="s_math" placeholder="0"><span id="err_s_math" class="error-msg"></span></div>
+                    <div><label>Phys (25%)</label><input type="number" id="s_phys" placeholder="0"><span id="err_s_phys" class="error-msg"></span></div>
+                    <div><label>Chem (25%)</label><input type="number" id="s_chem" placeholder="0"><span id="err_s_chem" class="error-msg"></span></div>
+                    <div><label>Bio (15%)</label><input type="number" id="s_bio" placeholder="0"><span id="err_s_bio" class="error-msg"></span></div>
+                    <div><label>Eng (10%)</label><input type="number" id="s_eng" placeholder="0"><span id="err_s_eng" class="error-msg"></span></div>
+                </div>
+
+                <label>Passport Photo<span class="required-star">*</span><span class="lock-icon">🔒</span></label>
+                <input type="file" id="photoFile" accept="image/*">
+                <span id="err_photoFile" class="error-msg"></span>
+                <hr style="margin:20px 0; border:0; border-top:1px solid #eee;">
+                <label>Celebration Photo (Optional)</label>
+                <input type="file" id="celebFile" accept="image/*">
+                <label>Vote of Thanks</label>
+                <textarea id="thanks" rows="4"></textarea>
             </div>
-            <div class="score-grid">
-                <input type="number" id="s_math" placeholder="Math">
-                <input type="number" id="s_phys" placeholder="Phys">
-                <input type="number" id="s_chem" placeholder="Chem">
-                <input type="number" id="s_bio" placeholder="Bio">
-                <input type="number" id="s_eng" placeholder="Eng">
-            </div>
-            <label>Passport</label><input type="file" id="photoFile">
+
             <div class="btn-row">
-                <button type="submit" class="save-btn">SAVE RECIPIENT</button>
+                <button type="button" id="addNextBtn" class="add-btn" onclick="addToQueue()">ADD ANOTHER USER</button>
+                <button type="submit" id="submitBtn" class="save-btn">SAVE USERS</button>
+                <button type="button" id="cancelBtn" class="cancel-btn" onclick="resetForm()">CANCEL EDIT</button>
             </div>
         </form>
 
+        <div id="queueSection">
+            <h3>Pending Queue List</h3>
+            <table class="queue-table">
+                <thead><tr><th>Name</th><th>Score</th><th>Potential Position</th><th>Action</th></tr></thead>
+                <tbody id="queueList"></tbody>
+            </table>
+        </div>
+
         <table>
-            <thead><tr><th>Recipient</th><th>Year</th><th>Actions</th></tr></thead>
+            <thead><tr><th>Link & Name</th><th>Year</th><th>Actions</th></tr></thead>
             <tbody id="list"></tbody>
         </table>
     </div>
@@ -77,60 +161,335 @@
 
     <script>
         const $ = id => document.getElementById(id);
-        let allStudents = [];
+        const startY = new Date().getFullYear() - 1;
+        let allStudents = [], lockedPhotoPath = "", pendingQueue = [];
+        $('year').value = Math.max(2025, startY);
+        
+        window.addEventListener('keydown', (e) => {
+            const isModalVisible = $('loader').style.display === 'flex';
+            const isButtonActive = $('closeModalBtn').style.display === 'block';
+            if (isModalVisible && isButtonActive) {
+                if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    resetForm();
+                }
+            }
+        });
+
+        const logout = () => { sessionStorage.removeItem('isAdmin'); window.location.href = 'login.html'; };
+        const updateLoader = (text) => { $('loaderText').innerText = text; };
+
+        const showFinalStatus = (type, msg) => {
+            $('spinner').style.display = 'none';
+            $('successIcon').style.display = type === 'success' ? 'flex' : 'none';
+            $('warnIcon').style.display = type === 'warn' ? 'flex' : 'none';
+            $('loaderText').innerText = msg;
+            $('closeModalBtn').style.display = 'block';
+        };
 
         async function fetchList() {
-            const res = await fetch('/data/data.json');
-            allStudents = await res.json();
-            $('list').innerHTML = allStudents.map(s => `
-                <tr>
-                    <td><strong>${s.lName}, ${s.fName}</strong></td>
-                    <td>${s.year}</td>
-                    <td>
-                        <button class="qr-btn" onclick="generateAndDownloadQR('${s.id}')">QR</button>
-                        <button class="award-btn" onclick="generateAward('${s.id}')">Generate Award 🏆</button>
-                    </td>
-                </tr>`).join('');
+            try {
+                const res = await fetch('/data/data.json');
+                allStudents = await res.json();
+                $('list').innerHTML = allStudents.map(s => `
+                    <tr>
+                        <td>
+                            <button class="link-btn" onclick="copyLink('${s.id}')">Copy Direct Link 🔗</button>
+                            <button class="qr-btn" onclick="generateAndDownloadQR('${s.id}')">Download QR Code 📥</button>
+                            <button class="award-btn" onclick="generateAward('${s.id}')">Download Award PNG 🏆</button><br>
+                            <strong>${s.lName}, ${s.fName} ${s.oName}</strong>
+                        </td>
+                        <td>${s.year}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editRecord('${s.id}')">Edit</button>
+                            <button class="del-btn" onclick="remove('${s.id}')">Delete</button>
+                        </td>
+                    </tr>`).join('');
+            } catch (e) { console.error("Could not fetch data."); }
         }
 
+        function copyLink(id) {
+            const url = window.location.origin + '/index.html?id=' + id;
+            navigator.clipboard.writeText(url).then(() => {
+                $('loader').style.display = 'flex';
+                showFinalStatus('success', 'Direct link copied to clipboard!');
+            });
+        }
+
+        const validate = () => {
+            let valid = true;
+            let firstErr = null;
+            const check = (id, msg, cond) => {
+                const el = $(id);
+                const err = $('err_' + id);
+                if (cond) {
+                    el.classList.add('input-error');
+                    if(err) err.innerText = msg;
+                    if(!firstErr) firstErr = el;
+                    valid = false;
+                } else {
+                    el.classList.remove('input-error');
+                    if(err) err.innerText = "";
+                }
+            };
+            const alphaOnly = /^[A-Za-z ]{3,}$/;
+            check('class', "Selection required", !$('class').value);
+            check('year', "Min 2025, Max 2035", !$('year').value || $('year').value < 2025 || $('year').value > 2035);
+            check('fName', "Min 3 alphabets", !alphaOnly.test($('fName').value.trim()));
+            check('lName', "Min 3 alphabets", !alphaOnly.test($('lName').value.trim()));
+            check('oName', "Min 3 alphabets", !alphaOnly.test($('oName').value.trim()));
+            ['s_math','s_phys','s_chem','s_bio','s_eng'].forEach(s => {
+                const val = $(s).value;
+                check(s, "0-100", val === "" || val < 0 || val > 100);
+            });
+            if (!$('editId').value) check('photoFile', "Required", !$('photoFile').files[0]);
+            if(firstErr) firstErr.focus();
+            return valid;
+        };
+
+        const fmt = v => {
+            let s = v.trim();
+            return s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : "";
+        };
+
+        function getPrioritySortedQueue(arr) {
+            return [...arr].sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (b.scores.m !== a.scores.m) return b.scores.m - a.scores.m;
+                if (b.scores.p !== a.scores.p) return b.scores.p - a.scores.p;
+                if (b.scores.c !== a.scores.c) return b.scores.c - a.scores.c;
+                if (b.scores.b !== a.scores.b) return b.scores.b - a.scores.b;
+                return b.scores.e - a.scores.e;
+            });
+        }
+
+        function addToQueue() {
+            if (!validate()) return false;
+            const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
+            const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
+            if (total < 75) {
+                $('loader').style.display = 'flex';
+                showFinalStatus('warn', "Score below 75% threshold.");
+                return false;
+            }
+            pendingQueue.push({
+                uid: Date.now() + Math.random(),
+                fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
+                scores: { m, p, c, b, e }, score: total,
+                photo: $('photoFile').files[0], celeb: $('celebFile').files[0],
+                thanks: $('thanks').value.trim()
+            });
+            $('class').disabled = true; $('year').disabled = true;
+            renderQueue();
+            ['fName','lName','oName','s_math','s_phys','s_chem','s_bio','s_eng','photoFile','celebFile','thanks'].forEach(i => $(i).value = "");
+            return true;
+        }
+
+        function removeFromQueue(uid) {
+            pendingQueue = pendingQueue.filter(u => u.uid !== uid);
+            renderQueue();
+        }
+
+        function renderQueue() {
+            if (!pendingQueue.length) { $('queueSection').style.display = 'none'; return; }
+            $('queueSection').style.display = 'block';
+            const sorted = getPrioritySortedQueue(pendingQueue);
+            const posLabel = ["1st", "2nd", "3rd"];
+            let rankIdx = 0;
+            $('queueList').innerHTML = sorted.map((u, i) => {
+                let displayPos = "";
+                if (i > 0) {
+                    const prev = sorted[i - 1];
+                    const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                    if (!tie) rankIdx = i; 
+                }
+                if (rankIdx < 3) displayPos = posLabel[rankIdx];
+                else displayPos = "Discarded (Not Top 3)";
+                return `<tr><td>${u.fName} ${u.lName}</td><td>${u.score.toFixed(1)}%</td><td><strong>${displayPos}</strong></td><td><button class="del-btn" onclick="removeFromQueue(${u.uid})">Remove</button></td></tr>`;
+            }).join('');
+        }
+
+        $('studentForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const eid = $('editId').value;
+            $('spinner').style.display = 'block';
+            $('successIcon').style.display = 'none';
+            $('warnIcon').style.display = 'none';
+            $('closeModalBtn').style.display = 'none';
+            $('loaderText').innerText = "Processing...";
+            $('loader').style.display = 'flex';
+            try {
+                if (eid) {
+                    if (!validate()) { $('loader').style.display = 'none'; return; }
+                    updateLoader(`Updating ${$('fName').value}...`);
+                    const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
+                    const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
+                    const student = {
+                        id: eid, fName: fmt($('fName').value), lName: fmt($('lName').value), oName: fmt($('oName').value),
+                        class: $('class').value, year: +$('year').value, position: $('pos').value,
+                        score: total.toFixed(1) + "%", details: { math: m, phys: p, chem: c, bio: b, eng: e },
+                        photo: lockedPhotoPath,
+                        celebration_photo: ($('celebFile').files[0] ? await uploadRawFile($('celebFile').files[0]) : (allStudents.find(x=>x.id===eid)?.celebration_photo) || ''),
+                        thanks: $('thanks').value.trim()
+                    };
+                    await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
+                    showFinalStatus('success', "Profile Updated Successfully!");
+                    return;
+                }
+                if ($('fName').value.trim() !== "") addToQueue();
+                if (pendingQueue.length === 0) { showFinalStatus('warn', "Queue empty."); return; }
+                const sorted = getPrioritySortedQueue(pendingQueue);
+                const posNames = ["1st Position", "2nd Position", "3rd Position"];
+                let savedCount = 0, rankIdx = 0, errors = [];
+                let tempRank = 0;
+                const totalToCreate = sorted.filter((u, i) => {
+                    if (i > 0) {
+                        const prev = sorted[i - 1];
+                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                        if (!tie) tempRank = i;
+                    }
+                    return tempRank < 3;
+                }).length;
+                for (let i = 0; i < sorted.length; i++) {
+                    const u = sorted[i];
+                    if (i > 0) {
+                        const prev = sorted[i - 1];
+                        const tie = (u.score === prev.score && u.scores.m === prev.scores.m && u.scores.p === prev.scores.p && u.scores.c === prev.scores.c && u.scores.b === prev.scores.b && u.scores.e === prev.scores.e);
+                        if (!tie) rankIdx = i;
+                    }
+                    if (rankIdx < 3) {
+                        try {
+                            updateLoader(`Processing ${u.fName} (${savedCount + 1}/${totalToCreate})...`);
+                            const photoPath = await uploadRawFile(u.photo) || 'img/default.png';
+                            const celebPath = u.celeb ? await uploadRawFile(u.celeb) : '';
+                            const rev = s => s.split('').reverse().join('');
+                            const now = new Date();
+                            const salt = Math.floor(Math.random() * 900) + 100;
+                            const fullTS = now.getFullYear().toString() + (now.getMonth() + 1).toString().padStart(2, '0') + now.getDate().toString().padStart(2, '0') + now.getHours().toString().padStart(2, '0') + now.getMinutes().toString().padStart(2, '0') + now.getSeconds().toString().padStart(2, '0');
+                            const cid = rev(u.fName.slice(0, 2).toUpperCase()) + rev(fullTS) + u.oName.charAt(0).toUpperCase() + salt + rev(u.lName.slice(0, 2).toUpperCase());
+                            const student = {
+                                id: cid, fName: u.fName, lName: u.lName, oName: u.oName,
+                                class: $('class').value, year: +$('year').value, position: posNames[rankIdx],
+                                score: u.score.toFixed(1) + "%", details: { math: u.scores.m, phys: u.scores.p, chem: u.scores.c, bio: u.scores.b, eng: u.scores.e },
+                                photo: photoPath, celebration_photo: celebPath, thanks: u.thanks
+                            };
+                            await fetch('/save', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(student) });
+                            savedCount++;
+                        } catch (fileErr) { errors.push(`${u.fName}: ${fileErr.message}`); }
+                    }
+                }
+                if (errors.length > 0) showFinalStatus('warn', `Batch partially saved. Errors: \n${errors.join('\n')}`);
+                else showFinalStatus('success', `Batch saved: ${savedCount} users successfully.`);
+            } catch (err) { console.error(err); showFinalStatus('warn', "Critical error occurred during save."); }
+        };
+
+        async function uploadRawFile(file) {
+            if (!file) return null;
+            const fd = new FormData(); fd.append('image', file);
+            const res = await fetch('/upload', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error("Upload failed");
+            const data = await res.json();
+            return data.filePath;
+        }
+
+        function editRecord(id) {
+            const s = allStudents.find(x => x.id === id);
+            if (!s) return;
+            resetForm();
+            $('editId').value = s.id; $('fName').value = s.fName; $('lName').value = s.lName; $('oName').value = s.oName || '';
+            $('class').value = s.class; $('year').value = s.year;
+            if(s.details) {
+                $('s_math').value = s.details.math; $('s_phys').value = s.details.phys; $('s_chem').value = s.details.chem;
+                $('s_bio').value = s.details.bio; $('s_eng').value = s.details.eng;
+            }
+            $('thanks').value = s.thanks || ''; lockedPhotoPath = s.photo;
+            toggleLock(true);
+            $('posContainer').style.display = 'block'; $('pos').value = s.position;
+            $('addNextBtn').style.display = 'none';
+            $('formTitle').innerText = "Edit Profile"; $('submitBtn').innerText = "UPDATE";
+            $('cancelBtn').style.display = "block"; window.scrollTo(0,0);
+        }
+
+        const toggleLock = (state) => {
+            ['fName','lName','oName','class','year','pos','s_math','s_phys','s_chem','s_bio','s_eng','photoFile'].forEach(i => $(i).disabled = state);
+            document.querySelectorAll('.lock-icon').forEach(i => i.style.display = state ? 'inline' : 'none');
+        };
+
+        function resetForm() {
+            $('loader').style.display = 'none';
+            $('studentForm').reset(); $('editId').value = ""; lockedPhotoPath = ""; pendingQueue = [];
+            toggleLock(false); renderQueue();
+            $('posContainer').style.display = 'none'; $('addNextBtn').style.display = 'block';
+            $('formTitle').innerText = "Add New Recipient"; $('submitBtn').innerText = "SAVE USERS";
+            $('cancelBtn').style.display = "none"; $('year').value = Math.max(2025, startY); fetchList();
+        }
+
+        async function remove(id) { 
+            if(confirm("Delete record?")) { 
+                const s = allStudents.find(x => x.id === id);
+                if(!s) return;
+                await fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ id, photo: s.photo, celebration_photo: s.celebration_photo }) }); 
+                fetchList(); 
+            } 
+        }
+
+        async function generateAndDownloadQR(id) {
+            const s = allStudents.find(x => x.id === id);
+            if (!s) return;
+            const buf = $('qr-buffer'); buf.innerHTML = "";
+            new QRCode(buf, { text: window.location.origin + '/index.html?id=' + id, width: 256, height: 256, colorDark: "#c9a227", colorLight: "rgba(0,0,0,0)", correctLevel: QRCode.CorrectLevel.H });
+            setTimeout(() => {
+                const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
+                cv.width = 300; cv.height = 420; 
+                ctx.strokeStyle = "#c9a227"; ctx.lineWidth = 3; ctx.strokeRect(5, 5, 290, 410);
+                ctx.drawImage(qr, 22, 20, 256, 256);
+                ctx.fillStyle = "#c9a227"; ctx.textAlign = "center";
+                ctx.font = "bold 16px Segoe UI";
+                const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
+                ctx.fillText(fullName.slice(0, 25), 150, 310);
+                ctx.font = "14px Segoe UI"; 
+                ctx.fillText("Scan to verify recipient", 150, 340);
+                const a = document.createElement('a'); a.download = `${s.fName}_qr.png`; a.href = cv.toDataURL(); a.click();
+            }, 200);
+        }
+
+        /** GENERATE PNG AWARD **/
         async function generateAward(id) {
             const s = allStudents.find(x => x.id === id);
             if (!s) return;
             const canvas = $('awardCanvas');
             const ctx = canvas.getContext('2d');
             
-            ctx.fillStyle = "white";
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "white"; 
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Large Logo
+            // 1. Logo
             const logo = new Image();
             logo.src = 'img/cert_logo.png';
             await new Promise(r => logo.onload = r);
-            ctx.drawImage(logo, (canvas.width / 2) - 250, 100, 500, 500);
+            ctx.drawImage(logo, (canvas.width / 2) - 225, 100, 450, 450);
 
-            // 2. Heading (Bebas Neue)
+            // 2. CELEBRATING (Bebas Neue)
             ctx.textAlign = "center";
             ctx.fillStyle = "#c9a227";
             ctx.font = "120px 'Bebas Neue'";
-            ctx.fillText("CELEBRATING", canvas.width / 2, 720);
+            ctx.fillText("CELEBRATING", canvas.width / 2, 700);
             
-            ctx.font = "50px 'Inter'";
-            ctx.fillText(`your ${s.position.toLowerCase()}`, canvas.width / 2, 800);
+            // 3. Class and Year (Inter)
+            ctx.font = "bold 55px 'Inter'";
+            ctx.fillText(`CLASS: ${s.class.toUpperCase()}`, canvas.width / 2, 850);
+            ctx.fillText(`YEAR: ${s.year}`, canvas.width / 2, 930);
 
-            // 3. Class & Year (Inter)
-            ctx.font = "bold 60px 'Inter'";
-            ctx.fillText(`CLASS: ${s.class.toUpperCase()}`, canvas.width / 2, 920);
-            ctx.fillText(`YEAR: ${s.year}`, canvas.width / 2, 1000);
+            // 4. Congratulations (Mr De Haviland - Signature)
+            ctx.font = "140px 'Mr De Haviland'"; 
+            ctx.fillText("Congratulations", canvas.width / 2, 1100);
 
-            // 4. Congratulations (Signature Font)
-            ctx.font = "130px 'Mr De Haviland'"; 
-            ctx.fillText("Congratulations", canvas.width / 2, 1150);
-
-            // 5. Name (Montserrat + Wrap)
-            ctx.font = "900 75px 'Montserrat'";
+            // 5. Name (Montserrat)
+            ctx.font = "900 80px 'Montserrat'";
             const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
             const words = fullName.split(' ');
-            let line = '', lines = [], maxWidth = 700;
+            let line = '', lines = [], maxWidth = 720;
 
             for (let n = 0; n < words.length; n++) {
                 let testLine = line + words[n] + ' ';
@@ -141,22 +500,22 @@
             }
             lines.push(line.trim());
 
-            let nameY = 1280;
+            let nameY = 1250;
             lines.forEach((l, i) => {
-                ctx.fillText(l, canvas.width / 2, nameY + (i * 90));
+                ctx.fillText(l, canvas.width / 2, nameY + (i * 95));
             });
 
-            // 6. Gold Verification Box (QR + Name + Scan Text)
-            const boxY = nameY + (lines.length * 90) + 40;
-            const boxHeight = 480;
+            // 6. Verification Zone with Gold Border
+            const boxY = nameY + (lines.length * 95) + 60;
             const boxWidth = 700;
+            const boxHeight = 450;
             const boxX = (canvas.width / 2) - (boxWidth / 2);
 
             ctx.strokeStyle = "#c9a227";
             ctx.lineWidth = 5;
             ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
 
-            // QR Code generation
+            // QR Code
             const buf = $('qr-buffer'); buf.innerHTML = "";
             new QRCode(buf, { 
                 text: window.location.origin + '/index.html?id=' + id, 
@@ -165,17 +524,18 @@
 
             setTimeout(() => {
                 const qrCanvas = buf.querySelector('canvas');
-                ctx.drawImage(qrCanvas, (canvas.width / 2) - 140, boxY + 40, 280, 280);
+                ctx.drawImage(qrCanvas, (canvas.width / 2) - 140, boxY + 30, 280, 280);
 
-                // Small name and verify text inside/below box
-                ctx.font = "bold 24px 'Montserrat'";
+                // Verification Text
+                ctx.font = "bold 26px 'Montserrat'";
                 ctx.fillText(fullName, canvas.width / 2, boxY + 360);
-                ctx.font = "normal 18px 'Inter'";
+                
+                ctx.font = "500 20px 'Inter'";
                 ctx.fillText("SCAN TO VERIFY USER DETAILS", canvas.width / 2, boxY + 400);
 
                 const link = document.createElement('a');
                 link.download = `Award_${s.fName}.png`;
-                link.href = canvas.toDataURL();
+                link.href = canvas.toDataURL('image/png');
                 link.click();
             }, 500);
         }
