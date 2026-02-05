@@ -5,7 +5,7 @@
     <title>Scholarship Admin Dashboard</title>
     <link rel="icon" type="image/png" href="img/favicon.png">
     <link rel="apple-touch-icon" href="img/favicon.png">
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;700&family=Montserrat:wght@700;900&family=Mr+De+Haviland&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Bebas+Neue&family=Inter:wght@400;700&family=Montserrat:wght@700&family=Mr+De+Haviland&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script>
         if (sessionStorage.getItem('isAdmin') !== 'true') {
@@ -157,7 +157,7 @@
         </table>
     </div>
 
-    <canvas id="awardCanvas" width="840" height="1920" style="display:none;"></canvas>
+    <canvas id="awardCanvas" width="1140" height="2880" style="display:none;"></canvas>
 
     <script>
         const $ = id => document.getElementById(id);
@@ -453,91 +453,105 @@
             }, 200);
         }
 
-        /** GENERATE PNG AWARD **/
+        /** GENERATE PNG AWARD WITH SPECIFIC COORDINATES AND FONTS **/
         async function generateAward(id) {
             const s = allStudents.find(x => x.id === id);
             if (!s) return;
             const canvas = $('awardCanvas');
             const ctx = canvas.getContext('2d');
             
+            // Clear for transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "white"; 
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Logo
+            // 1. Logo (150px to 980px Width | 170px to 1030px Length)
             const logo = new Image();
             logo.src = 'img/cert_logo.png';
             await new Promise(r => logo.onload = r);
-            ctx.drawImage(logo, (canvas.width / 2) - 225, 100, 450, 450);
+            ctx.drawImage(logo, 150, 170, 830, 860);
 
-            // 2. CELEBRATING (Bebas Neue)
+            // 2. CELEBRATING (260px to 860px | 1160px to 1270px | Font: Bebas Neue)
             ctx.textAlign = "center";
             ctx.fillStyle = "#c9a227";
-            ctx.font = "120px 'Bebas Neue'";
-            ctx.fillText("CELEBRATING", canvas.width / 2, 700);
+            ctx.font = "110px 'Bebas Neue'";
+            ctx.fillText("CELEBRATING", canvas.width / 2, 1240);
             
-            // 3. Class and Year (Inter)
-            ctx.font = "bold 55px 'Inter'";
-            ctx.fillText(`CLASS: ${s.class.toUpperCase()}`, canvas.width / 2, 850);
-            ctx.fillText(`YEAR: ${s.year}`, canvas.width / 2, 930);
+            // 3. your position (320px to 800px | 1290px to 1340px | Font: Bebas Neue)
+            ctx.font = "50px 'Bebas Neue'";
+            ctx.fillText(`your ${s.position.toLowerCase()}`, canvas.width / 2, 1335);
 
-            // 4. Congratulations (Mr De Haviland - Signature)
-            ctx.font = "140px 'Mr De Haviland'"; 
-            ctx.fillText("Congratulations", canvas.width / 2, 1100);
+            // 4. CLASS (390px to 730px | 1500px to 1540px | Font: Inter)
+            ctx.font = "700 40px 'Inter'";
+            ctx.fillText(`CLASS: ${s.class.toUpperCase()}`, canvas.width / 2, 1535);
 
-            // 5. Name (Montserrat)
-            ctx.font = "900 80px 'Montserrat'";
-            const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
-            const words = fullName.split(' ');
-            let line = '', lines = [], maxWidth = 720;
+            // 5. YEAR (390px to 730px | 1520px to 1610px | Font: Inter)
+            ctx.fillText(`YEAR: ${s.year}`, canvas.width / 2, 1595);
 
-            for (let n = 0; n < words.length; n++) {
-                let testLine = line + words[n] + ' ';
-                if (ctx.measureText(testLine).width > maxWidth && n > 0) {
-                    lines.push(line.trim());
-                    line = words[n] + ' ';
-                } else { line = testLine; }
-            }
-            lines.push(line.trim());
+            // 6. Congratulations (210px to 910px | 1760px to 1940px | Font: Photograph Signature / Great Vibes fallback)
+                        // 1. Define the font face
+            const goldenFont = new FontFace('GoldenSignature', 'url(fonts/Golden_Dream.ttf)');
 
-            let nameY = 1250;
-            lines.forEach((l, i) => {
-                ctx.fillText(l, canvas.width / 2, nameY + (i * 95));
+            // 2. Load and apply
+            goldenFont.load().then((loadedFace) => {
+                document.fonts.add(loadedFace);
+
+                ctx.save(); // Saves current canvas state
+                ctx.textAlign = "center";
+                ctx.fillStyle = "#c9a227"; 
+                ctx.font = "bold 150px GoldenSignature"; 
+                
+                // Drawing the text
+                ctx.fillText("Congratulations", canvas.width / 2, 1900);
+                ctx.restore(); // Restores canvas state
+                
+                console.log("GoldenSignature font rendered successfully.");
+            }).catch((err) => {
+                console.error("Font loading failed:", err);
+                // Fallback: If font fails, use a generic cursive font
+                ctx.font = "150px cursive";
+                ctx.fillText("Congratulationss", canvas.width / 2, 1900);
             });
 
-            // 6. Verification Zone with Gold Border
-            const boxY = nameY + (lines.length * 95) + 60;
-            const boxWidth = 700;
-            const boxHeight = 450;
-            const boxX = (canvas.width / 2) - (boxWidth / 2);
+            // 7. Name (240px to 880px | Font: Montserrat)
+            ctx.font = "700 80px 'Montserrat'";
+            const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
+            ctx.fillText(fullName, canvas.width / 2, 2050);
 
+            // 8. QR Code Area (400px to 730px | 2170px to 2620px)
+            const qrX = 400;
+            const qrY = 2170;
+            const qrSize = 330; // 730 - 400
+
+            // Draw Golden Border
             ctx.strokeStyle = "#c9a227";
             ctx.lineWidth = 5;
-            ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+            ctx.strokeRect(qrX, qrY, qrSize, 450); // 2620 - 2170 = 450
 
-            // QR Code
             const buf = $('qr-buffer'); buf.innerHTML = "";
             new QRCode(buf, { 
                 text: window.location.origin + '/index.html?id=' + id, 
-                width: 280, height: 280, colorDark: "#c9a227", colorLight: "rgba(0,0,0,0)"
+                width: 280, height: 280, 
+                colorDark: "#c9a227", 
+                colorLight: "rgba(0,0,0,0)",
+                correctLevel: 2
             });
 
             setTimeout(() => {
                 const qrCanvas = buf.querySelector('canvas');
-                ctx.drawImage(qrCanvas, (canvas.width / 2) - 140, boxY + 30, 280, 280);
+                ctx.drawImage(qrCanvas, qrX + 25, qrY + 30, 280, 280);
 
-                // Verification Text
-                ctx.font = "bold 26px 'Montserrat'";
-                ctx.fillText(fullName, canvas.width / 2, boxY + 360);
+                // Internal QR Text
+                ctx.fillStyle = "#c9a227";
+                ctx.font = "bold 18px 'Inter'";
+                ctx.fillText(fullName.slice(0, 30), qrX + (qrSize/2), qrY + 350);
                 
-                ctx.font = "500 20px 'Inter'";
-                ctx.fillText("SCAN TO VERIFY USER DETAILS", canvas.width / 2, boxY + 400);
+                ctx.font = "14px 'Inter'";
+                ctx.fillText("scan to verify user details", qrX + (qrSize/2), qrY + 380);
 
                 const link = document.createElement('a');
-                link.download = `Award_${s.fName}.png`;
+                link.download = `Award_${s.fName}_HD.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            }, 500);
+            }, 400);
         }
 
         fetchList();

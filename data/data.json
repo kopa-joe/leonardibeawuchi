@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "id": "GS85609103106202C342KJ",
+    "fName": "Sgh",
+    "lName": "Jkxl",
+    "oName": "Cxjklf",
+    "class": "SS2",
+    "year": 2026,
+    "position": "1st Position",
+    "score": "98.8%",
+    "details": {
+      "math": 98,
+      "phys": 99,
+      "chem": 99,
+      "bio": 99,
+      "eng": 99
+    },
+    "photo": "img/1769796417985-header_bg.jpg",
+    "celebration_photo": "",
+    "thanks": ""
+  }
+]
