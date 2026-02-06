@@ -469,10 +469,11 @@
             await new Promise(r => logo.onload = r);
             ctx.drawImage(logo, 150, 170, 830, 860);
 
+
             // 2. CELEBRATING (260px to 860px | 1160px to 1270px | Font: Bebas Neue)
             ctx.textAlign = "center";
             ctx.fillStyle = "#c9a227";
-            ctx.font = "110px 'Bebas Neue'";
+            ctx.font = "150px 'Bebas Neue'";
             ctx.fillText("CELEBRATING", canvas.width / 2, 1240);
             
             // 3. your position (320px to 800px | 1290px to 1340px | Font: Bebas Neue)
@@ -488,7 +489,8 @@
 
             // 6. Congratulations (210px to 910px | 1760px to 1940px | Font: Photograph Signature / Great Vibes fallback)
                         // 1. Define the font face
-            const goldenFont = new FontFace('GoldenSignature', 'url(fonts/Golden_Dream.ttf)');
+            const goldenFont = new FontFace('GoldenSignature', 'url(fonts/Photograph_Signature.ttf)');
+            const bebasNeue = new FontFace('GoldenSignature', 'url(fonts/BebasNeue_Regular.ttf)');
 
             // 2. Load and apply
             goldenFont.load().then((loadedFace) => {
@@ -497,19 +499,12 @@
                 ctx.save(); // Saves current canvas state
                 ctx.textAlign = "center";
                 ctx.fillStyle = "#c9a227"; 
-                ctx.font = "bold 150px GoldenSignature"; 
+                ctx.font = "150px GoldenSignature"; 
                 
                 // Drawing the text
                 ctx.fillText("Congratulations", canvas.width / 2, 1900);
                 ctx.restore(); // Restores canvas state
-                
-                console.log("GoldenSignature font rendered successfully.");
-            }).catch((err) => {
-                console.error("Font loading failed:", err);
-                // Fallback: If font fails, use a generic cursive font
-                ctx.font = "150px cursive";
-                ctx.fillText("Congratulationss", canvas.width / 2, 1900);
-            });
+                });
 
             // 7. Name (240px to 880px | Font: Montserrat)
             ctx.font = "700 80px 'Montserrat'";
