@@ -1,21 +1,81 @@
 [
   {
-    "id": "GS85609103106202C342KJ",
-    "fName": "UZODIMMA",
-    "lName": "IBEAWUCHI",
-    "oName": "JOSEPH",
+    "id": "AP75737080206202P359GO",
+    "fName": "Patience",
+    "lName": "Ogbole",
+    "oName": "Patience",
     "class": "SS2",
-    "year": 2026,
+    "year": 2025,
     "position": "1st Position",
-    "score": "98.8%",
+    "score": "100.0%",
     "details": {
-      "math": 98,
-      "phys": 99,
-      "chem": 99,
-      "bio": 99,
-      "eng": 99
+      "math": 100,
+      "phys": 100,
+      "chem": 100,
+      "bio": 100,
+      "eng": 100
     },
-    "photo": "img/1769796417985-header_bg.jpg",
+    "photo": "img/1770532677336-Patience_Ogbole.jpg",
+    "celebration_photo": "",
+    "thanks": ""
+  },
+  {
+    "id": "EH75737080206202H431DA",
+    "fName": "Helen",
+    "lName": "Adole",
+    "oName": "Helen",
+    "class": "SS2",
+    "year": 2025,
+    "position": "1st Position",
+    "score": "100.0%",
+    "details": {
+      "math": 100,
+      "phys": 100,
+      "chem": 100,
+      "bio": 100,
+      "eng": 100
+    },
+    "photo": "img/1770532677348-Adole_Helen.jpg",
+    "celebration_photo": "",
+    "thanks": ""
+  },
+  {
+    "id": "IM75737080206202M583JE",
+    "fName": "Michael",
+    "lName": "Ejembi",
+    "oName": "Michael",
+    "class": "SS2",
+    "year": 2025,
+    "position": "1st Position",
+    "score": "100.0%",
+    "details": {
+      "math": 100,
+      "phys": 100,
+      "chem": 100,
+      "bio": 100,
+      "eng": 100
+    },
+    "photo": "img/1770532677359-Ejembi_Michael.jpg",
+    "celebration_photo": "",
+    "thanks": ""
+  },
+  {
+    "id": "AM54357080206202E301BA",
+    "fName": "Mary",
+    "lName": "Abel",
+    "oName": "Ebor",
+    "class": "SS1",
+    "year": 2025,
+    "position": "1st Position",
+    "score": "100.0%",
+    "details": {
+      "math": 100,
+      "phys": 100,
+      "chem": 100,
+      "bio": 100,
+      "eng": 100
+    },
+    "photo": "img/1770533625257-Abel_Ebor_Mary.jpg",
     "celebration_photo": "",
     "thanks": ""
   }
