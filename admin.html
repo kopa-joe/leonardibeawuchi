@@ -437,7 +437,7 @@
             const s = allStudents.find(x => x.id === id);
             if (!s) return;
             const buf = $('qr-buffer'); buf.innerHTML = "";
-            new QRCode(buf, { text: window.location.origin + '/index.html?id=' + id, width: 256, height: 256, colorDark: "#c9a227", colorLight: "rgba(0,0,0,0)", correctLevel: QRCode.CorrectLevel.H });
+            new QRCode(buf, { text: window.location.origin + '/index.html?id=' + id, width: 256, height: 256, colorDark: "#c9a227", colorLight: "rgba(0,0,0,0)", correctLevel: QRCode.Level.H });
             setTimeout(() => {
                 const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), qr = buf.querySelector('canvas');
                 cv.width = 300; cv.height = 420; 
@@ -460,66 +460,68 @@
             const canvas = $('awardCanvas');
             const ctx = canvas.getContext('2d');
             
-            // Clear for transparent background
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 1. Logo (150px to 980px Width | 170px to 1030px Length)
+            // 1. Logo
             const logo = new Image();
             logo.src = 'img/cert_logo.png';
             await new Promise(r => logo.onload = r);
             ctx.drawImage(logo, 150, 170, 830, 860);
 
-
-            // 2. CELEBRATING (260px to 860px | 1160px to 1270px | Font: Bebas Neue)
+            // 2. CELEBRATING
             ctx.textAlign = "center";
             ctx.fillStyle = "#c9a227";
             ctx.font = "150px 'Bebas Neue'";
             ctx.fillText("CELEBRATING", canvas.width / 2, 1240);
             
-            // 3. your position (320px to 800px | 1290px to 1340px | Font: Bebas Neue)
+            // 3. your position
             ctx.font = "50px 'Bebas Neue'";
             ctx.fillText(`your ${s.position.toLowerCase()}`, canvas.width / 2, 1335);
 
-            // 4. CLASS (390px to 730px | 1500px to 1540px | Font: Inter)
+            // 4. CLASS
             ctx.font = "700 40px 'Inter'";
             ctx.fillText(`CLASS: ${s.class.toUpperCase()}`, canvas.width / 2, 1535);
 
-            // 5. YEAR (390px to 730px | 1520px to 1610px | Font: Inter)
+            // 5. YEAR
             ctx.fillText(`YEAR: ${s.year}`, canvas.width / 2, 1595);
 
-            // 6. Congratulations (210px to 910px | 1760px to 1940px | Font: Photograph Signature / Great Vibes fallback)
-                        // 1. Define the font face
+            // 6. Congratulations
             const goldenFont = new FontFace('GoldenSignature', 'url(fonts/Photograph_Signature.ttf)');
-            const bebasNeue = new FontFace('GoldenSignature', 'url(fonts/BebasNeue_Regular.ttf)');
-
-            // 2. Load and apply
-            goldenFont.load().then((loadedFace) => {
+            await goldenFont.load().then((loadedFace) => {
                 document.fonts.add(loadedFace);
-
-                ctx.save(); // Saves current canvas state
+                ctx.save(); 
                 ctx.textAlign = "center";
                 ctx.fillStyle = "#c9a227"; 
                 ctx.font = "150px GoldenSignature"; 
-                
-                // Drawing the text
                 ctx.fillText("Congratulations", canvas.width / 2, 1900);
-                ctx.restore(); // Restores canvas state
-                });
+                ctx.restore();
+            });
 
-            // 7. Name (240px to 880px | Font: Montserrat)
+            // 7. Name (Dynamic Wrapping Logic)
             ctx.font = "700 80px 'Montserrat'";
-            const fullName = `${s.fName} ${s.oName} ${s.lName}`.toUpperCase();
-            ctx.fillText(fullName, canvas.width / 2, 2050);
+            const fname = s.fName.toUpperCase();
+            const oname = s.oName.toUpperCase();
+            const lname = s.lName.toUpperCase();
+            
+            let rowA = fname;
+            let rowB = `${oname} ${lname}`;
 
-            // 8. QR Code Area (400px to 730px | 2170px to 2620px)
+            // If combined other+last is massive, try to shift other name up
+            if (ctx.measureText(rowB).width > 1000) {
+                rowA = `${fname} ${oname}`;
+                rowB = lname;
+            }
+
+            ctx.fillText(rowA, canvas.width / 2, 2050);
+            ctx.fillText(rowB, canvas.width / 2, 2140);
+
+            // 8. QR Code Area
             const qrX = 400;
-            const qrY = 2170;
-            const qrSize = 330; // 730 - 400
-
-            // Draw Golden Border
+            const qrY = 2260; 
+            const qrSize = 330;
             ctx.strokeStyle = "#c9a227";
             ctx.lineWidth = 5;
-            ctx.strokeRect(qrX, qrY, qrSize, 450); // 2620 - 2170 = 450
+            ctx.strokeRect(qrX, qrY, qrSize, 450);
 
             const buf = $('qr-buffer'); buf.innerHTML = "";
             new QRCode(buf, { 
@@ -533,14 +535,25 @@
             setTimeout(() => {
                 const qrCanvas = buf.querySelector('canvas');
                 ctx.drawImage(qrCanvas, qrX + 25, qrY + 30, 280, 280);
-
-                // Internal QR Text
+                
+                // Internal QR Text (Dynamic Wrapping Logic)
                 ctx.fillStyle = "#c9a227";
                 ctx.font = "bold 18px 'Inter'";
-                ctx.fillText(fullName.slice(0, 30), qrX + (qrSize/2), qrY + 350);
+                
+                let qrRow1 = fname;
+                let qrRow2 = `${oname} ${lname}`;
+                
+                // Adjust wrap for QR container width (~300px)
+                if (ctx.measureText(qrRow2).width > 280) {
+                    qrRow1 = `${fname} ${oname}`;
+                    qrRow2 = lname;
+                }
+
+                ctx.fillText(qrRow1, qrX + (qrSize/2), qrY + 340);
+                ctx.fillText(qrRow2, qrX + (qrSize/2), qrY + 365);
                 
                 ctx.font = "14px 'Inter'";
-                ctx.fillText("scan to verify user details", qrX + (qrSize/2), qrY + 380);
+                ctx.fillText("scan to verify user details", qrX + (qrSize/2), qrY + 395);
 
                 const link = document.createElement('a');
                 link.download = `Award_${s.fName}_HD.png`;
