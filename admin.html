@@ -267,9 +267,9 @@
             if (!validate()) return false;
             const m = parseFloat($('s_math').value), p = parseFloat($('s_phys').value), c = parseFloat($('s_chem').value), b = parseFloat($('s_bio').value), e = parseFloat($('s_eng').value);
             const total = (m * 0.25) + (p * 0.25) + (c * 0.25) + (b * 0.15) + (e * 0.10);
-            if (total < 75) {
+            if (total < 70) {
                 $('loader').style.display = 'flex';
-                showFinalStatus('warn', "Score below 75% threshold.");
+                showFinalStatus('warn', "Score below 70% threshold and is discarded.");
                 return false;
             }
             pendingQueue.push({
